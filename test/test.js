@@ -11,40 +11,97 @@ describe('argton', function() {
         isNetmask: true
     };
 
-    var ip = (192 << 24) + (168 << 16) + (2 << 8) + 1,
-        mask = (255 << 24) + (255 << 16) + (255 << 8);
+    it('should argton and ntoa', function() {
+        var ipstr = '192.168.2.1',
+            ipdec = (192 << 24) + (168 << 16) + (2 << 8) + 1,
+            i, j;
 
-    it('should not convert integer ip', function() {
-        assert.strictEqual(ipcalc.argton(ip), ip);
+        assert.strictEqual(ipcalc.argton(ipstr), ipdec);
+
+        for (i = 0; i < 10; i++) {
+            ipstr = [];
+            ipdec = 0;
+            for (j = 0; j < 4; j++) {
+                ipstr[j] = 255 * Math.floor(Math.random());
+                ipdec += ipstr[j] << (3 - j) * 8;
+            }
+            ipstr = ipstr.join('.');
+
+            // it should convert string to integer
+            assert.strictEqual(ipcalc.argton(ipstr), ipdec);
+
+            // it should convert integer to string
+            assert.strictEqual(ipcalc.ntoa(ipdec), ipstr);
+
+            // it should not convert integer
+            assert.strictEqual(ipcalc.argton(ipdec), ipdec);
+        }
     });
 
-    // it('should not convert hex integer ip', function() {
-    //     assert.strictEqual(ip, ipcalc.argton((ip).toString(16)));
-    // });
+    it('should not convert invalid address', function() {
+        var ipstr, i, j;
+        assert.strictEqual(ipcalc.argton('192.168.2.'), false);
+        assert.strictEqual(ipcalc.argton('192'), false);
 
-    it('should convert dotted ip to integer', function() {
-        assert.strictEqual(ipcalc.argton('192.168.2.1'), ip);
+        for (i = 0; i < 10; i++) {
+            ipstr = [
+                Math.round(256 + 255 * Math.random()),
+                Math.round(256 + 255 * Math.random()),
+                Math.round(256 + 255 * Math.random()),
+                Math.round(256 + 255 * Math.random())
+            ].join('.');
+            assert.strictEqual(ipcalc.argton(ipstr), false);
+        }
     });
 
-    it('should not convert integer mask', function() {
-        assert.strictEqual(ipcalc.argton(mask), mask);
-        assert.strictEqual(ipcalc.argton(mask, netmaskOpts), mask);
-    });
-
-    it('should convert dotted mask to integer', function() {
+    it('should argton mask, ntobitcountmask, bitcountmaskton, validate_netmask', function() {
+        var mask = (255 << 24) + (255 << 16) + (255 << 8);
         assert.strictEqual(ipcalc.argton('255.255.255.0'), mask);
         assert.strictEqual(ipcalc.argton('255.255.255.0', netmaskOpts), mask);
+
+        for (var i = 0; i <= 32; i++) {
+            mask = ipcalc.argton(i, netmaskOpts);
+
+            assert.strictEqual(ipcalc.argton('/' + i, netmaskOpts), mask);
+            assert.strictEqual(ipcalc.argton('' + i, netmaskOpts), mask);
+            assert.strictEqual(ipcalc.argton(ipcalc.ntoa(mask), netmaskOpts), mask);
+
+            assert.strictEqual(ipcalc.ntobitcountmask(mask), i);
+            assert.strictEqual(ipcalc.bitcountmaskton(i), mask);
+            assert.strictEqual(ipcalc.validate_netmask(mask), mask);
+
+            // it should not convert integer mask
+            assert.strictEqual(ipcalc.argton(mask), mask);
+            assert.strictEqual(ipcalc.argton(mask, netmaskOpts), mask);
+        }
     });
 
-    it('should convert bitcount mask to integer', function() {
-        assert.strictEqual(ipcalc.argton('/24', netmaskOpts), mask);
-        assert.strictEqual(ipcalc.argton('24', netmaskOpts), mask);
-        assert.strictEqual(ipcalc.argton(24, netmaskOpts), mask);
-    });
+    it('should getclass', function() {
+        var classes = [
+                [0, 127, 'A'],
+                [128, 191, 'B'],
+                [192, 223, 'C'],
+                [224, 239, 'D'],
+                [240, 255, 'E']
+            ],
+            args, start, end, letter, address, len, i, j;
 
-    it('should convert integer ip to dotted ip', function() {
-        assert.strictEqual(ipcalc.ntoa(ip), '192.168.2.1');
-        assert.strictEqual(ipcalc.ntoa(mask), '255.255.255.0');
+        for (i = 0, len = classes.length; i < len; i++) {
+            args = classes[i];
+            start = args[0];
+            end = args[1];
+            letter = args[2];
+
+            for (j = 0; j < 10; j++) {
+                address = [
+                    Math.round(start + (end - start) * Math.random()),
+                    Math.round(255 * Math.random()),
+                    Math.round(255 * Math.random()),
+                    Math.round(255 * Math.random())
+                ].join('.');
+                assert.strictEqual(ipcalc.getclass(ipcalc.argton(address)), letter);
+            }
+        }
     });
 
     it('should convert integer border cases', function() {
@@ -54,89 +111,12 @@ describe('argton', function() {
         assert.strictEqual(ipcalc.argton('0', netmaskOpts), 0);
     });
 
-    it('should not convert invalid address', function() {
-        assert.strictEqual(ipcalc.argton('192.168.2.'), false);
-        assert.strictEqual(ipcalc.argton('192'), false);
-    });
-
-    it('should validate mask', function() {
-        assert.strictEqual(ipcalc.validate_netmask(mask), mask);
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('0.0.0.0')), ipcalc.argton('0.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('128.0.0.0')), ipcalc.argton('128.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('192.0.0.0')), ipcalc.argton('192.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('224.0.0.0')), ipcalc.argton('224.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('240.0.0.0')), ipcalc.argton('240.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('248.0.0.0')), ipcalc.argton('248.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('252.0.0.0')), ipcalc.argton('252.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('254.0.0.0')), ipcalc.argton('254.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.0.0.0')), ipcalc.argton('255.0.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.128.0.0')), ipcalc.argton('255.128.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.192.0.0')), ipcalc.argton('255.192.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.224.0.0')), ipcalc.argton('255.224.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.240.0.0')), ipcalc.argton('255.240.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.248.0.0')), ipcalc.argton('255.248.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.252.0.0')), ipcalc.argton('255.252.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.254.0.0')), ipcalc.argton('255.254.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.0.0')), ipcalc.argton('255.255.0.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.128.0')), ipcalc.argton('255.255.128.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.192.0')), ipcalc.argton('255.255.192.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.224.0')), ipcalc.argton('255.255.224.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.240.0')), ipcalc.argton('255.255.240.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.248.0')), ipcalc.argton('255.255.248.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.252.0')), ipcalc.argton('255.255.252.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.254.0')), ipcalc.argton('255.255.254.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.0')), ipcalc.argton('255.255.255.0'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.128')), ipcalc.argton('255.255.255.128'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.192')), ipcalc.argton('255.255.255.192'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.224')), ipcalc.argton('255.255.255.224'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.240')), ipcalc.argton('255.255.255.240'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.248')), ipcalc.argton('255.255.255.248'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.252')), ipcalc.argton('255.255.255.252'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.254')), ipcalc.argton('255.255.255.254'));
-        assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.255')), ipcalc.argton('255.255.255.255'));
-
+    it('should invalidate mask', function() {
         assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.253')), false);
         assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.255.230')), false);
         assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.255.225.0')), false);
         assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.252.190.0')), false);
         assert.strictEqual(ipcalc.validate_netmask(ipcalc.argton('255.0.255.255')), false);
-    });
-
-    it('should count bit mask', function() {
-        var mask;
-        for (var i = 0; i <= 32; i++) {
-            mask = ipcalc.argton(i, netmaskOpts);
-            assert.strictEqual(ipcalc.ntobitcountmask(mask), i);
-            assert.strictEqual(ipcalc.bitcountmaskton(i), mask);
-        }
-    });
-
-    it('should get class', function() {
-        var classes = [
-                [0, 127, 'A'],
-                [128, 191, 'B'],
-                [192, 223, 'C'],
-                [224, 239, 'D'],
-                [240, 255, 'E']
-            ],
-            args, start, end, letter, ip, len, i, j;
-
-        for (i = 0, len = classes.length; i < len; i++) {
-            args = classes[i];
-            start = args[0];
-            end = args[1];
-            letter = args[2];
-
-            for (j = 0; j < 10; j++) {
-                ip = [
-                    Math.round(start + (end - start) * Math.random()),
-                    Math.round(255 * Math.random()),
-                    Math.round(255 * Math.random()),
-                    Math.round(255 * Math.random())
-                ].join('.');
-                assert.strictEqual(ipcalc.getclass(ipcalc.argton(ip)), letter);
-            }
-        }
     });
 
     it('should deaggregate', function() {
@@ -230,6 +210,16 @@ describe('argton', function() {
             '192.168.96.0/20',
             '192.168.112.0/20'
         ]);
+    });
+
+    it('should contains', function() {
+        assert.strictEqual(ipcalc.contains('192.168.0.1/24', '192.168.0.1'), true);
+        assert.strictEqual(ipcalc.contains('192.168.0.1/24', '192.168.0.124'), true);
+        assert.strictEqual(ipcalc.contains('192.168.0.1/24', '192.168.0.254'), true);
+        assert.strictEqual(ipcalc.contains('192.168.0.1/24', '192.168.1.1'), false);
+        assert.strictEqual(ipcalc.contains('192.168.0.1/16', '192.168.1.1'), true);
+        assert.strictEqual(ipcalc.contains('10.0.0.0/8', '192.168.1.1'), false);
+        assert.strictEqual(ipcalc.contains('10.0.0.0/8', '10.220.220.125'), true);
     });
 });
 

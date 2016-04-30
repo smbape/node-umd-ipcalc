@@ -23,9 +23,51 @@
     exports.ntoa = ntoa;
     exports.round2powerof2 = round2powerof2;
     exports.dec2bin = dec2bin;
+    exports.contains = contains;
 
-    var thirtytwobits = 4294967295; // for masking bitwise not on 64 bit arch; 11111111111111111111111111111111
-    var slice = [].slice;
+    var slice = [].slice,
+        netmaskOpt = {
+            isNetmask: true
+        };
+
+    var NETWORK_TYPES = {
+        '10.0.0.0/8': {
+            network: argton('10.0.0.0'),
+            mask: argton(8, netmaskOpt),
+            label: 'Private Internet',
+            link: 'http://www.ietf.org/rfc/rfc1918.txt'
+        },
+        '127.0.0.0/8': {
+            network: argton('127.0.0.0'),
+            mask: argton(8, netmaskOpt),
+            label: 'Loopback',
+            link: 'http://www.ietf.org/rfc/rfc1700.txt'
+        },
+        '169.254.0.0/16': {
+            network: argton('169.254.0.0'),
+            mask: argton(16, netmaskOpt),
+            label: 'APIPA',
+            link: 'http://www.ietf.org/rfc/rfc3330.txt'
+        },
+        '172.16.0.0/12': {
+            network: argton('172.16.0.0'),
+            mask: argton(12, netmaskOpt),
+            label: 'Private Internet',
+            link: 'http://www.ietf.org/rfc/rfc1918.txt'
+        },
+        '192.168.0.0/16': {
+            network: argton('192.168.0.0'),
+            mask: argton(16, netmaskOpt),
+            label: 'Private Internet',
+            link: 'http://www.ietf.org/rfc/rfc1918.txt'
+        },
+        '224.0.0.0/4': {
+            network: argton('224.0.0.0'),
+            mask: argton(4, netmaskOpt),
+            label: 'Multicast',
+            link: 'http://www.ietf.org/rfc/rfc3171.txt'
+        }
+    };
 
     /**
      * Create a Network from an address and a netmask
@@ -34,6 +76,20 @@
      * @return {Network}
      */
     function ipcalc(address, mask, options) {
+        var error;
+        if ('string' === typeof address && address.indexOf('/') !== -1) {
+            address = address.split('/');
+            if (address.length !== 2) {
+                error = new Error('Invalid network address ' + address.join('/'));
+                error.network = address;
+                error.code = 'INVALID_NETWORK';
+                throw error;
+            }
+
+            options = mask;
+            mask = address[1];
+            address = address[0];
+        }
         return new Network(address, mask, mask);
     }
 
@@ -85,8 +141,8 @@
 
         while (base <= end) {
             step = 0;
-            while ((base | (1 << step)) !== base) {
-                if ((base | (((~0) & thirtytwobits) >>> (31 - step))) > end) {
+            while ((base | 1 << step) !== base) {
+                if ((base | ~0 >>> (31 - step)) > end) {
                     break;
                 }
                 step++;
@@ -114,7 +170,7 @@
         sizes = Array.isArray(sizes) ? sizes : slice.call(arguments, 2);
 
         var network = address & mask1,
-            broadcast = network | ((~mask1) & thirtytwobits),
+            broadcast = network | ~mask1,
             subnets = new Array(sizes.length),
             needed_addresses = 0,
             net = [],
@@ -144,11 +200,12 @@
             subnets[i] = new Network(net[i], bitcountmaskton(mask[i]));
         }
 
-        var used_mask = 32 - Math.ceil(Math.log(round2powerof2(needed_addresses)) / Math.log(2));
-        if (used_mask < ntobitcountmask(mask1)) {
-            var error = new Error("Network " + ntoa(network) + "/" + ntobitcountmask(mask1) + " is too small for " + needed_addresses + " hosts");
+        var used_mask = 32 - Math.ceil(Math.log(round2powerof2(needed_addresses)) / Math.log(2)),
+            bitcountmask1 = ntobitcountmask(mask1);
+        if (used_mask < bitcountmask1) {
+            var error = new Error("Network " + ntoa(network) + "/" + bitcountmask1 + " is too small for " + needed_addresses + " hosts");
             error.code = 'NETWORK_SMALL';
-            error.network = ntoa(network) + "/" + ntobitcountmask(mask1);
+            error.network = ntoa(network) + "/" + bitcountmask1;
             error.needed = needed_addresses;
             throw error;
         }
@@ -194,27 +251,44 @@
             subnets = [],
             net, hostn;
 
+        // jshint -W018
         if (!(limit > 0)) {
             limit = 1000;
         }
+        // jshint +W018
 
         if (nhost < limit) {
             limit = nhost;
         }
 
         for (subnet = 0; subnet < limit; subnet++) {
-            net = network | (subnet << (32 - bitcountmask2));
+            net = network | subnet << (32 - bitcountmask2);
             subnets.push(new Network(net, mask2, mask1));
         }
 
         subnet = nhost;
-        hostn = (network | ((~mask2) & thirtytwobits)) - network - 1;
+        hostn = (network | ~mask2) - network - 1;
         if (hostn < 1) {
             hostn = 1;
         }
 
         subnets.hostn = hostn * subnet;
         return subnets;
+    }
+
+    function contains(network, host) {
+        host = assert_valid_address(host);
+        if ('string' === typeof network) {
+            network = network.split('/');
+            var address = assert_valid_address(network[0]),
+                mask = assert_valid_address(network[1], {
+                    isNetmask: true
+                });
+
+            return (address & mask) === (host & mask);
+        }
+
+        return false;
     }
 
     /**
@@ -229,7 +303,7 @@
             isNetmask: true
         });
 
-        var broadcast = address | ((~mask1) & thirtytwobits),
+        var broadcast = address | ~mask1,
             network = address & mask1,
             mask = ntobitcountmask(mask1);
 
@@ -241,12 +315,15 @@
         this.className = getclass(network);
         this.mask = mask;
         this.wildcard = ~mask;
+        this.shortcode = ntoa(this.network) + '/' + this.mask
 
         if (mask === 31) {
             this.hmin = network;
             this.hmax = broadcast;
             this.hostn = 2;
         } else if (mask === 32) {
+            this.hmin = network;
+            this.hmax = network;
             this.hostn = 1;
         } else {
             this.broadcast = broadcast;
@@ -254,7 +331,38 @@
             this.hmax = broadcast - 1;
             this.hostn = this.hmax - this.hmin + 1;
         }
+
+        var bait;
+        if (mask >= 4) {
+            if ((network & NETWORK_TYPES['224.0.0.0/4'].mask) === NETWORK_TYPES['224.0.0.0/4'].network) {
+                this.type = NETWORK_TYPES['224.0.0.0/4'];
+            } else if (mask >= 8) {
+                bait = network & NETWORK_TYPES['10.0.0.0/8'].mask;
+                if (bait === NETWORK_TYPES['10.0.0.0/8'].network) {
+                    this.type = NETWORK_TYPES['10.0.0.0/8'];
+                } else if (bait === NETWORK_TYPES['127.0.0.0/8'].network) {
+                    this.type = NETWORK_TYPES['127.0.0.0/8'];
+                } else if (mask >= 12 && (network & NETWORK_TYPES['172.16.0.0/12'].mask) === NETWORK_TYPES['172.16.0.0/12'].network) {
+                    this.type = NETWORK_TYPES['172.16.0.0/12'];
+                } else if (mask >= 16) {
+                    bait = network & NETWORK_TYPES['169.254.0.0/16'].mask;
+                    if (bait === NETWORK_TYPES['169.254.0.0/16'].network) {
+                        this.type = NETWORK_TYPES['169.254.0.0/16'];
+                    } else if (bait === NETWORK_TYPES['192.168.0.0/16'].network) {
+                        this.type = NETWORK_TYPES['192.168.0.0/16'];
+                    }
+                }
+            }
+        }
+
+        // switch (network & NETWORK_TYPES['192.168.0.0/16'].mask)
+
     }
+
+    Network.prototype.contains = function(address) {
+        address = assert_valid_address(address);
+        return this.hmin <= address && address <= this.hmax;
+    };
 
     Network.prototype.split = function() {
         return split_network(this.address, this.mask);
@@ -266,7 +374,7 @@
 
     Network.prototype.toString = function(shortFormat) {
         if (shortFormat) {
-            return ntoa(this.network) + '/' + this.mask;
+            return this.shortcode;
         }
         var LF = '\n  ',
             PROP_SEP = ',' + LF,
@@ -301,6 +409,14 @@
             }
             str.push('hostn: ');
             str.push(this.hostn);
+        }
+
+        if (this.type) {
+            if (str.length) {
+                str.push(PROP_SEP);
+            }
+            str.push('type: ');
+            str.push(this.type.label);
         }
 
         return this.constructor.name + ' {' + LF + str.join('') + '\n}';
@@ -401,7 +517,7 @@
         var bitcountmask = 0;
 
         // find first zero
-        while ((mask & (1 << (31 - bitcountmask))) !== 0) {
+        while ((mask & 1 << (31 - bitcountmask)) !== 0) {
             if (bitcountmask > 31) {
                 break;
             }
@@ -426,7 +542,7 @@
 
         // find ones following zeros
         for (var i = 0; i < 32; i++) {
-            if ((mask & (1 << (31 - i))) === 0) {
+            if ((mask & 1 << (31 - i)) === 0) {
                 saw_zero = true;
             } else {
                 if (saw_zero) {
@@ -454,7 +570,7 @@
 
     function round2powerof2(number) {
         var i = 0;
-        while (number > (1 << i)) {
+        while (number > 1 << i) {
             i++;
         }
         return 1 << i;
@@ -466,11 +582,11 @@
         if (address === false) {
             if (options && options.isNetmask) {
                 error = new Error('Invalid netmask address ' + arg);
-                error.arg = arg;
+                error.address = arg;
                 error.code = 'INVALID_NETMASK';
             } else {
                 error = new Error('Invalid address ' + arg);
-                error.arg = arg;
+                error.address = arg;
                 error.code = 'INVALID_IPV4';
             }
 
@@ -493,7 +609,7 @@
             missing = digits - bin.length;
             if (missing > 0) {
                 // bin = '0'.repeat(missing) + bin;
-                bin = (new Array(missing + 1)).join('0') + bin;
+                bin = new Array(missing + 1).join('0') + bin;
             }
         }
         return bin;

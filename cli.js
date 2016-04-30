@@ -33,16 +33,16 @@ var netmaskOpts = {
 // console.log('[\n' + ipcalc.deaggregate('192.168.2.1', '192.168.2.255').map(function(element, index) {
 //     return '  ' + element.toString(true);
 // }).join('\n') + '\n]');
-var splitted = ipcalc.split_network(ipcalc.argton('192.168.0.1'), ipcalc.argton(17, netmaskOpts), 1024, 1024);
-console.log('address', ipcalc.ntoa(splitted.address));
-console.log('network', ipcalc.ntoa(splitted.network));
-console.log('needed_size', splitted.needed_size);
-console.log('[\n' + splitted.map(function(element, index) {
-    return '  ' + element.toString(true);
-}).join('\n') + '\n]');
-console.log('[\n' + splitted.unused.map(function(element, index) {
-    return '  ' + element.toString(true);
-}).join('\n') + '\n]');
+// var splitted = ipcalc.split_network(ipcalc.argton('192.168.0.1'), ipcalc.argton(17, netmaskOpts), 1024, 1024);
+// console.log('address', ipcalc.ntoa(splitted.address));
+// console.log('network', ipcalc.ntoa(splitted.network));
+// console.log('needed_size', splitted.needed_size);
+// console.log('[\n' + splitted.map(function(element, index) {
+//     return '  ' + element.toString(true);
+// }).join('\n') + '\n]');
+// console.log('[\n' + splitted.unused.map(function(element, index) {
+//     return '  ' + element.toString(true);
+// }).join('\n') + '\n]');
 // var subnets = ipcalc.subnets('192.168.0.1', 17, 19);
 // console.log('hosts', subnets.hostn);
 // console.log('[\n' + subnets.map(function(element, index) {
