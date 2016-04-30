@@ -1,0 +1,15 @@
+{
+  "name": "umd-ipcalc",
+  "version": "1.0.0",
+  "description": "JavaScript implementation of http://jodies.de/ipcalc",
+  "main": "ipcalc.js",
+  "scripts": {
+    "test": "node node_modules/mocha/bin/_mocha --full-trace --require test/common.js test"
+  },
+  "author": "Stéphane MBAPE",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "umd-ipcalc",
+  "version": "1.0.0",
+  "description": "JavaScript implementation of http://jodies.de/ipcalc",
+  "main": [
+    "views/**",
+    "ipcalc.js",
+    "resources.coffee"
+  ],
+  "umd": true,
+  "authors": [
+    "Stéphane MBAPE"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "bower_components",
+    "node_modules",
+    "test",
+    "tests",
+    "cli.js",
+    "package.json"
+  ]
+}
