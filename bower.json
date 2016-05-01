@@ -3,9 +3,7 @@
   "version": "1.1.0",
   "description": "JavaScript implementation of http://jodies.de/ipcalc",
   "main": [
-    "views/**",
-    "ipcalc.js",
-    "resources.coffee"
+    "dist/**"
   ],
   "umd": true,
   "authors": [

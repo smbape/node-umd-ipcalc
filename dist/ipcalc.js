@@ -7,6 +7,7 @@
         global.ipcalc = factory();
     }
 })(this, function() {
+    /* jshint immed: false */
     'use strict';
 
     var exports = ipcalc;
@@ -22,7 +23,7 @@
     exports.validate_netmask = validate_netmask;
     exports.ntoa = ntoa;
     exports.round2powerof2 = round2powerof2;
-    exports.dec2bin = dec2bin;
+    exports.dec2base = dec2base;
     exports.contains = contains;
 
     var slice = [].slice,
@@ -429,9 +430,8 @@
      * @return {Address}
      */
     function argton(address, options) {
-        var i = 24,
-            network = 0,
-            decimals, decimal, j;
+        var network = 0,
+            decimals, decimal, i;
 
         if (options === null || typeof options !== 'object') {
             options = {};
@@ -449,22 +449,17 @@
                     return bitcountmaskton(network);
                 }
 
-                // if (/^-?(?:0x)?[0-9A-Fa-f]{8}$/.test(address)) {
-                //     // hex (0xSSSSSSSS or SSSSSSSS)
-                //     network = parseInt(address, 16);
-                // }
-
                 if (decimals = address.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
                     // dotted decimals
-                    for (j = 1; j < 5; j++) {
-                        decimal = parseInt(decimals[j], 10);
+                    for (i = 1; i < 5; i++) {
+                        decimal = parseInt(decimals[i], 10);
                         if (decimal > 255) {
                             // invalid address
                             return false;
                         }
 
-                        network += decimal << i;
-                        i -= 8;
+                        network <<= 8;
+                        network += decimal;
                     }
                 } else {
                     return false;
@@ -495,18 +490,21 @@
      * @return {Address}
      */
     function bitcountmaskton(mask) {
-        var network = 0;
-
         if (mask < 0 || mask > 32) {
             // invalid address
             return false;
         }
-        for (var i = 0; i < mask; i++) {
-            network |= 1 << (31 - i);
-        }
 
-        return network;
+        return mask === 0 ? 0 : ~0 << (32 - mask);
     }
+
+    var MASKS = (function(bitcountmaskton) {
+        var dict = {};
+        for (var i = 0; i <= 32; i++) {
+            dict[bitcountmaskton(i)] = i;
+        }
+        return dict;
+    }(bitcountmaskton));
 
     /**
      * Address to bit count mask
@@ -514,16 +512,7 @@
      * @return {Integer}
      */
     function ntobitcountmask(mask) {
-        var bitcountmask = 0;
-
-        // find first zero
-        while ((mask & 1 << (31 - bitcountmask)) !== 0) {
-            if (bitcountmask > 31) {
-                break;
-            }
-            bitcountmask++;
-        }
-        return bitcountmask;
+        return MASKS[mask];
     }
 
     /**
@@ -597,22 +586,21 @@
     }
 
     /**
-     * http://stackoverflow.com/questions/9939760/how-do-i-convert-an-integer-to-binary-in-javascript#16155417
-     * @param  {Integer} dec
-     * @param  {Integer} digits minimum number of digits to display
-     * @return {String}
+     * @param  {Integer} dec    decimal to transform
+     * @param  {Integer} base   base to use
+     * @param  {Integer} digits minimum digits to keep
+     * @return {String}         [description]
      */
-    function dec2bin(dec, digits) {
-        var bin = (dec >>> 0).toString(2),
+    function dec2base(dec, base, digits) {
+        var res = (dec >>> 0).toString(base).toUpperCase(),
             missing;
-        if (digits) {
-            missing = digits - bin.length;
-            if (missing > 0) {
-                // bin = '0'.repeat(missing) + bin;
-                bin = new Array(missing + 1).join('0') + bin;
-            }
+
+        if (digits > res.length) {
+            missing = digits - res.length;
+            // res = '0'.repeat(missing) + res;
+            res = new Array(missing + 1).join('0') + res;
         }
-        return bin;
+        return res;
     }
 
     return exports;

@@ -1,10 +1,8 @@
-/* jshint node:true */
-/* jshint mocha:true */
-'use strict';
+// jshint node: true
+// jshint mocha: true
 
 var assert = require('assert');
-
-var ipcalc = require('../ipcalc');
+var ipcalc = require('../');
 
 describe('argton', function() {
     var netmaskOpts = {
