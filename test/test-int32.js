@@ -16,6 +16,41 @@ describe('CInt32Array', function() {
         assert.strictEqual(CInt32Array.create([0x12DE, 0xE274A714, 0, 0xFFFF]).toString(), '000012DEE274A714000000000000FFFF');
     });
 
+    it('should and', function() {
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).and(CInt32Array.create([0xFFFF0000, 0, 0])).toString(), '42C800000000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).and(CInt32Array.create([0, 0, 0])).toString(), '000000000000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).and(CInt32Array.create([0xFFFFFFFF, 0, 0, 0])).toString(), '000000000000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).and(CInt32Array.create([0, 0xFFFFFFFF, 0, 0])).toString(), '42C800000000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).and(CInt32Array.create([0, 0xF00FFFFF, 0, 0xFFFFFFFF])).toString(), '4008000000000000E274A714');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).and(0xFF).toString(), '000000000000000000000014');
+        assert.strictEqual(CInt32Array.create([0x42C80123, 0, 0xE274A714]).and(0xFF).toString(), '000000230000000000000014');
+    });
+
+    it('should or', function() {
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).or(CInt32Array.create([0xFFFF0000, 0, 0])).toString(), 'FFFF00000000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).or(CInt32Array.create([0, 0, 0])).toString(), '42C8000000000000E274A714');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).or(CInt32Array.create([0xFFFFFFFF, 0, 0, 0])).toString(), '42C8000000000000E274A714');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).or(CInt32Array.create([0, 0xFFFFFFFF, 0, 0])).toString(), 'FFFFFFFF0000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).or(CInt32Array.create([0, 0xF00FFFFF, 0, 0xFFFFFFFF])).toString(), 'F2CFFFFF00000000FFFFFFFF');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).or(0xFF).toString(), '42C800FF000000FFE274A7FF');
+        assert.strictEqual(CInt32Array.create([0x42C80123, 0, 0xE274A714]).or(0xFF).toString(), '42C801FF000000FFE274A7FF');
+    });
+
+    it('should xor', function() {
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).xor(CInt32Array.create([0xFFFF0000, 0, 0])).toString(), 'BD3700000000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).xor(CInt32Array.create([0, 0, 0])).toString(), '42C8000000000000E274A714');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).xor(CInt32Array.create([0xFFFFFFFF, 0, 0, 0])).toString(), '42C8000000000000E274A714');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).xor(CInt32Array.create([0, 0xFFFFFFFF, 0, 0])).toString(), 'BD37FFFF0000000000000000');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).xor(CInt32Array.create([0, 0xF00FFFFF, 0, 0xFFFFFFFF])).toString(), 'B2C7FFFF000000001D8B58EB');
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0xE274A714]).xor(0xFF).toString(), '42C800FF000000FFE274A7EB');
+        assert.strictEqual(CInt32Array.create([0x42C80123, 0, 0xE274A714]).xor(0xFF).toString(), '42C801DC000000FFE274A7EB');
+    });
+
+    it('should not', function() {
+        assert.strictEqual(CInt32Array.create([0x42C80000, 0, 0]).not().toString(), 'BD37FFFFFFFFFFFFFFFFFFFF');
+        assert.strictEqual(CInt32Array.create([0x42C80123, 0, 0xE274A714]).not().toString(), 'BD37FEDCFFFFFFFF1D8B58EB');
+    });
+
     it('should rshift', function() {
         var int32 = new CInt32Array([0x42C80000, 0, 0, 0]),
             mem, i;
