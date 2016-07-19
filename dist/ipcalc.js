@@ -380,7 +380,7 @@
         var LF = '\n  ',
             PROP_SEP = ',' + LF,
             str = [],
-            props = ['address', 'network', 'wildcard', 'broadcast', 'hmin', 'hmax', 'className'],
+            props = ['address', 'network', 'wildcard', 'broadcast', 'hmin', 'hmax'],
             prop, value, index;
         for (var i = 0, len = props.length; i < len; i++) {
             prop = props[i];
@@ -393,6 +393,15 @@
                 str.push(': ');
                 str.push(ntoa(value));
             }
+        }
+
+        if (this.className) {
+            if (str.length) {
+                str.push(PROP_SEP);
+            }
+            str.push('class');
+            str.push(': ');
+            str.push(this.className);
         }
 
         if (this.mask) {
@@ -420,7 +429,7 @@
             str.push(this.type.label);
         }
 
-        return this.constructor.name + ' {' + LF + str.join('') + '\n}';
+        return 'Network {' + LF + str.join('') + '\n}';
     };
 
     /**
