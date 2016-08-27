@@ -13,11 +13,11 @@ freact = ({Backbone, i18n}, app, ReactModelView, validators, InputWithError, ipc
     app.updateResources resources
 
     addressValidator = (value, attr, computed)->
-        if value and ipcalc.argton(value) is false
+        if not value or ipcalc.argton(value) is false
             return validators.error 'ipcalc.error.INVALID_IPV4', field: attr
 
     maskValidator = (value, attr, computed)->
-        if value and ipcalc.argton(value, {isNetmask: true}) is false
+        if not value or ipcalc.argton(value, {isNetmask: true}) is false
             return validators.error 'ipcalc.error.INVALID_IPV4', field: attr
 
     class ParameterModel extends Backbone.Model

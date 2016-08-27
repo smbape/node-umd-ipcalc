@@ -11,8 +11,8 @@ factory = (require)->
             button:
                 'show-network': 'Show network'
                 deaggregate: 'Deaggregate'
-                split: 'Split into subnets of hosts'
-                subnet: 'Split into subnets with mask'
+                split: 'Split using hosts'
+                subnet: 'Split using mask'
             error:
                 INVALID_IPV4: "Invalid IPV4 address #{prefix}address#{suffix}"
                 INVALID_NETMASK: "Invalid netmask #{prefix}address#{suffix}"

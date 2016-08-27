@@ -19,5 +19,8 @@
     "tests",
     "cli.js",
     "package.json"
-  ]
+  ],
+  "dependencies": {
+    "umd-core": "^1.2.8"
+  }
 }
