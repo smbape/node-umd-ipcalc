@@ -21,6 +21,6 @@
     "package.json"
   ],
   "dependencies": {
-    "umd-core": "^1.2.8"
+    "umd-core": "^2.0.1"
   }
 }
