@@ -4,12 +4,13 @@
   "description": "JavaScript implementation of http://jodies.de/ipcalc",
   "main": "dist/ipcalc.js",
   "scripts": {
-    "test": "node node_modules/mocha/bin/_mocha --full-trace --require test/common.js test"
+    "prepublishOnly": "npm run test",
+    "test": "node node_modules/mocha/bin/_mocha --full-trace test/*.js"
   },
   "author": "Stéphane MBAPE",
   "license": "MIT",
   "devDependencies": {
-    "chai": "^3.5.0",
-    "mocha": "^2.4.5"
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
   }
 }

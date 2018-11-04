@@ -1,7 +1,7 @@
 // jshint node: true
 // jshint mocha: true
 
-var assert = require('assert');
+var {assert} = require('chai');
 var ipcalc = require('../');
 
 describe('argton', function() {

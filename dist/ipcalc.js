@@ -1,5 +1,5 @@
 (function(global, factory) {
-    if (typeof exports !== 'undefined') {
+    if (typeof module !== 'undefined' && typeof module.exports === 'object') {
         module.exports = factory();
     } else if (typeof define === 'function' && define.amd) {
         define([], factory);
