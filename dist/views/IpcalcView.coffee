@@ -1,4 +1,6 @@
 `
+/* eslint no-shadow: ["error", { "allow": ["IpcalcView", "addressValidator", "maskValidator", "ParameterModel", "subnetsToString"] }] */
+
 import React from "%{ amd: 'react', common: '!React' }";
 import Backbone from "%{amd: 'backbone', common: 'backbone', brunch: '!Backbone', node: 'backbone'}";
 import i18n from "%{amd: 'i18next', common: 'i18next', brunch: '!i18next'}";
@@ -21,6 +23,11 @@ maskValidator = (value, attr, computed)->
     if not value or ipcalc.argton(value, {isNetmask: true}) is false
         return validators.error 'ipcalc.error.INVALID_IPV4', field: attr
 
+subnetsToString = (subnets, short = true)->
+    '[\n' + subnets.map((element, index) ->
+        '  ' + element.toString(short)
+    ).join('\n') + '\n]'
+
 class ParameterModel extends Backbone.Model
     validation:
         address: fn: addressValidator
@@ -38,17 +45,19 @@ class ParameterModel extends Backbone.Model
                 when 'subnets'
                     return maskValidator value, attr, computed
 
-subnetsToString = (subnets, short = true)->
-    '[\n' + subnets.map((element, index) ->
-        '  ' + element.toString(short)
-    ).join('\n') + '\n]'
-
 class IpcalcView extends ReactModelView
+    constructor: ->
+        super(arguments...)
+        this.showNetwork = this.showNetwork.bind(this)
+        this.deaggregate = this.deaggregate.bind(this)
+        this.split_network = this.split_network.bind(this)
+        this.subnets = this.subnets.bind(this)
+
     initialize: ->
         @params = new ParameterModel @props.params
         return
 
-    showNetwork: (evt)=>
+    showNetwork: (evt)->
         evt.preventDefault()
         @params.set 'type', 'network'
         invalidAttrs = @params.validate null, {forceUpdate: false}
@@ -58,7 +67,7 @@ class IpcalcView extends ReactModelView
             @inline.set 'content', network.toString()
         return
 
-    deaggregate: (evt)=>
+    deaggregate: (evt)->
         evt.preventDefault()
         @params.set 'type', 'deaggregate'
         invalidAttrs = @params.validate null, {forceUpdate: false}
@@ -69,7 +78,7 @@ class IpcalcView extends ReactModelView
             @inline.set 'content', content
         return
 
-    split_network: (evt)=>
+    split_network: (evt)->
         evt.preventDefault()
         @params.set 'type', 'split_network'
         invalidAttrs = @params.validate null, {forceUpdate: false}
@@ -93,7 +102,7 @@ class IpcalcView extends ReactModelView
             @inline.set 'content', content.join('\n')
         return
 
-    subnets: (evt)=>
+    subnets: (evt)->
         evt.preventDefault()
         @params.set 'type', 'subnets'
         invalidAttrs = @params.validate null, {forceUpdate: false}
@@ -112,7 +121,7 @@ class IpcalcView extends ReactModelView
         return
 
     render: ->
-        params = @params
+        {params} = this
         `<form onSubmit={this.showNetwork} className="container">
             <h2>{i18n.t('ipcalc.title')}</h2>
 
